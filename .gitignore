@@ -37,3 +37,5 @@ out/
 tsconfig.tsbuildinfo
 
 uploads/
+
+*.identifier
