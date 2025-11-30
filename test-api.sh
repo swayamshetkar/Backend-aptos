@@ -85,16 +85,25 @@ echo -e "${BLUE}7. Getting Video by ID${NC}"
 curl -X GET "$BASE_URL/api/video/1"
 echo -e "\n"
 
-# 8. Create Campaign (requires authentication)
-echo -e "${BLUE}8. Creating Campaign${NC}"
-curl -X POST "$BASE_URL/api/campaign/create" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "video_id": 0,
-    "budget": 1000000,
-    "reward_per_second": 10
-  }'
+# 8. Create Campaign with Ad Video (requires authentication and test ad video)
+echo -e "${BLUE}8. Creating Campaign with Advertisement${NC}"
+if [ -f "test_ad.mp4" ]; then
+  curl -X POST "$BASE_URL/api/campaign/create" \
+    -H "Authorization: Bearer $TOKEN" \
+    -F "adFile=@test_ad.mp4" \
+    -F "video_id=1" \
+    -F "ad_title=Test Advertisement" \
+    -F "budget=1000000" \
+    -F "reward_per_second=10"
+else
+  echo -e "${RED}test_ad.mp4 not found. Skipping campaign creation.${NC}"
+  echo -e "${BLUE}Note: Create a small test_ad.mp4 file to test ad campaigns${NC}"
+fi
+echo -e "\n"
+
+# 8b. Get Campaign for Video
+echo -e "${BLUE}8b. Getting Campaign Details for Video 1${NC}"
+curl -X GET "$BASE_URL/api/campaign/1"
 echo -e "\n"
 
 # 9. Record Watch Time (requires attester role)

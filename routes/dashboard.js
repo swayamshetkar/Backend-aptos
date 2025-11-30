@@ -24,34 +24,38 @@ router.get("/creator/:address", async (req, res) => {
     // Enrich videos with IPFS URLs
     const videos = videosRaw.map(enrichVideoWithUrl);
 
-    // Try to read on-chain balance (best effort)
-    let balance = 0;
-    let balanceData = null;
+    // Calculate total balance from ad_views for this creator's videos
+    let totalUnits = 0;
+    const db = mirror.getDb();
     
     try {
-      const resourceType = `${MODULE_ADDRESS}::AdMarket::CreatorBalances`;
-      const resource = await client.getAccountResource(MODULE_ADDRESS, resourceType);
+      // Sum all rewards earned from ad views on this creator's videos
+      const stmt = db.prepare(`
+        SELECT COALESCE(SUM(av.reward_earned), 0) as total
+        FROM ad_views av
+        JOIN campaigns c ON av.campaign_id = c.id
+        JOIN videos v ON c.video_id = v.id
+        WHERE v.creator = ?
+      `);
       
-      // If resource has data field with balance info, extract it
-      if (resource && resource.data) {
-        balanceData = resource.data;
-        // Try to find balance for this creator
-        if (balanceData.balances && typeof balanceData.balances === 'object') {
-          balance = balanceData.balances[address] || 0;
-        }
-      }
+      const result = stmt.get(address);
+      totalUnits = result ? result.total : 0;
     } catch (e) {
-      // Silently fail - balance will be 0
-      console.warn(`Could not fetch on-chain balance for ${address}:`, e.message);
+      console.warn(`Could not calculate balance for ${address}:`, e.message);
     }
+
+    // Convert units to APT (assuming 1 unit = 0.00001 APT for display)
+    // In reality, these are just tracking units, not actual transferred APT
+    const balanceInAPT = (totalUnits / 100000).toFixed(5);
 
     return res.json({
       success: true,
       creator: address,
       stats: {
         totalVideos: videos.length,
-        balance: balance,
-        balanceFormatted: `${balance} APT`
+        balance: balanceInAPT,
+        balanceUnits: totalUnits,
+        balanceFormatted: `${balanceInAPT} APT (${totalUnits} units tracked)`
       },
       videos
     });
