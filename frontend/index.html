@@ -3,13 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AdMarket - Blockchain Video Platform</title>
+    <title>BlockTube - Blockchain Video Platform</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <!-- Logo Icon -->
+            <div class="loading-logo">
+                <span class="loading-logo-text">B</span>
+            </div>
+
+            <!-- Text Container -->
+            <div class="loading-text-container">
+                <!-- BlockTube -->
+                <div class="loading-title">
+                    <span class="loading-title-text">BlockTube</span>
+                </div>
+
+                <!-- Decentralized Video -->
+                <div class="loading-subtitle">
+                    <span class="loading-subtitle-text">Decentralized</span>
+                    <span class="loading-subtitle-text">Video</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar">
         <div class="nav-container">
-            <div class="logo">🎬 AdMarket</div>
+            <div class="logo">🎬 BlockTube</div>
             <ul class="nav-links">
                 <li><a href="#home" onclick="showPage('home')">Home</a></li>
                 <li><a href="#consumer" onclick="showPage('consumer')">Watch Videos</a></li>
@@ -24,7 +48,7 @@
     <div id="home" class="page active">
         <section class="hero">
             <div class="hero-content">
-                <h1>Welcome to AdMarket</h1>
+                <h1>Welcome to BlockTube</h1>
                 <p class="hero-subtitle">The decentralized video platform where creators earn and advertisers connect</p>
                 <div class="hero-stats">
                     <div class="stat-card">
@@ -95,13 +119,32 @@
             <div class="modal-content video-modal">
                 <span class="close" onclick="closeVideoModal()">&times;</span>
                 <div id="videoPlayerContainer">
-                    <video id="videoPlayer" controls></video>
-                    <div class="video-info">
-                        <h2 id="modalVideoTitle"></h2>
-                        <p id="modalVideoDescription"></p>
-                        <div class="video-meta">
-                            <span>Creator: <span id="modalCreator"></span></span>
-                            <span>Uploaded: <span id="modalDate"></span></span>
+                    <!-- Ad Player (shown first if campaign exists) -->
+                    <div id="adPlayerContainer" style="display:none;">
+                        <div class="ad-indicator">
+                            <span>📢 Advertisement</span>
+                            <span id="adSkipBtn" style="display:none;" onclick="skipAd()">Skip Ad →</span>
+                        </div>
+                        <video id="adPlayer" controls autoplay></video>
+                        <div class="ad-info">
+                            <h3 id="adTitle"></h3>
+                            <p>Creator earns <span id="adReward">0</span> APT per second you watch!</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Video Player -->
+                    <div id="mainPlayerContainer" style="display:none;">
+                        <video id="videoPlayer" controls autoplay></video>
+                        <div class="video-info">
+                            <h2 id="modalVideoTitle"></h2>
+                            <p id="modalVideoDescription"></p>
+                            <div class="video-meta">
+                                <span>Creator: <span id="modalCreator"></span></span>
+                                <span>Uploaded: <span id="modalDate"></span></span>
+                            </div>
+                            <div id="earningsDisplay" class="earnings-display" style="display:none;">
+                                <p>✅ Creator earned <strong id="totalEarnings">0</strong> APT from this ad!</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -184,19 +227,32 @@
                     <h2>Create Campaign</h2>
                     <form id="campaignForm" class="campaign-form">
                         <div class="form-group">
-                            <label for="campaignVideoId">Video ID</label>
+                            <label for="adFile">Advertisement Video</label>
+                            <input type="file" id="adFile" accept="video/*" required>
+                            <small>Upload your ad video (will play before main video)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="adTitle">Advertisement Title</label>
+                            <input type="text" id="adTitle" placeholder="Enter ad title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="campaignVideoId">Target Video ID</label>
                             <input type="number" id="campaignVideoId" placeholder="Enter video ID" required>
-                            <small>Find video ID from the video list</small>
+                            <small>Select from the video list below</small>
                         </div>
                         <div class="form-group">
                             <label for="campaignBudget">Budget (APT)</label>
                             <input type="number" id="campaignBudget" placeholder="1000000" required>
                         </div>
                         <div class="form-group">
-                            <label for="campaignReward">Reward per Second</label>
+                            <label for="campaignReward">Reward per Second (Creator Earnings)</label>
                             <input type="number" id="campaignReward" placeholder="10" required>
+                            <small>Creator earns this amount per second of ad watch time</small>
                         </div>
-                        <button type="submit" class="btn-primary btn-block">Create Campaign</button>
+                        <button type="submit" class="btn-primary btn-block">Upload Ad & Create Campaign</button>
+                        <div id="campaignProgress" class="progress-bar" style="display:none;">
+                            <div class="progress-fill"></div>
+                        </div>
                         <div id="campaignStatus" class="status-message"></div>
                     </form>
                 </div>
@@ -208,29 +264,29 @@
                         <div class="info-item">
                             <span class="info-icon">1️⃣</span>
                             <div>
-                                <h4>Select a Video</h4>
-                                <p>Choose a video to promote by entering its ID</p>
+                                <h4>Upload Ad Video</h4>
+                                <p>Upload your advertisement video that will play before the main content</p>
                             </div>
                         </div>
                         <div class="info-item">
                             <span class="info-icon">2️⃣</span>
                             <div>
-                                <h4>Set Budget</h4>
-                                <p>Define your campaign budget in APT tokens</p>
+                                <h4>Select Target Video</h4>
+                                <p>Choose which video your ad will appear on</p>
                             </div>
                         </div>
                         <div class="info-item">
                             <span class="info-icon">3️⃣</span>
                             <div>
-                                <h4>Configure Rewards</h4>
-                                <p>Set reward per second of watch time</p>
+                                <h4>Set Budget & Rewards</h4>
+                                <p>Define campaign budget and creator earnings per second</p>
                             </div>
                         </div>
                         <div class="info-item">
                             <span class="info-icon">4️⃣</span>
                             <div>
                                 <h4>Launch Campaign</h4>
-                                <p>Your campaign goes live on the blockchain</p>
+                                <p>Ad goes live and creators start earning when viewers watch!</p>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,14 @@
+[package]
+name = "AdMarket"
+version = "1.0.0"
+
+[addresses]
+admarket = "0x725e2ce1a9869698c840684828def3c663776877380c3020c8bbc51fae019f27"
+
+[dev-addresses]
+admarket = "0x725e2ce1a9869698c840684828def3c663776877380c3020c8bbc51fae019f27"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "devnet"
+subdir = "aptos-framework"

@@ -8,9 +8,26 @@ let authToken = null;
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
-    loadHomePage();
-    setupEventListeners();
+    // Show loading screen first
+    showLoadingScreen();
 });
+
+// Loading Screen
+function showLoadingScreen() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    
+    // After 3.5 seconds, fade out loading screen
+    setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        
+        // After fade out animation, remove from DOM and initialize app
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            loadHomePage();
+            setupEventListeners();
+        }, 500);
+    }, 3500);
+}
 
 // Page Navigation
 function showPage(pageName) {
@@ -183,27 +200,113 @@ function displayVideoList(videos, containerId) {
 }
 
 // Video Modal Functions
+let currentCampaign = null;
+let currentVideoData = null;
+let adStartTime = 0;
+
 async function openVideoModal(videoId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/video/${videoId}`);
-        const data = await response.json();
+        // Load video data
+        const videoResponse = await fetch(`${API_BASE_URL}/api/video/${videoId}`);
+        const videoData = await videoResponse.json();
 
-        if (data.success) {
-            const video = data.video;
-            
-            document.getElementById('modalVideoTitle').textContent = video.title;
-            document.getElementById('modalVideoDescription').textContent = video.description;
-            document.getElementById('modalCreator').textContent = video.creator.substring(0, 10) + '...';
-            document.getElementById('modalDate').textContent = formatDate(video.created_at);
-            
-            const videoPlayer = document.getElementById('videoPlayer');
-            videoPlayer.src = video.url;
-            
-            document.getElementById('videoModal').classList.add('active');
+        if (!videoData.success) {
+            alert('Failed to load video');
+            return;
         }
+
+        currentVideoData = videoData.video;
+        
+        // Check for campaign/ad
+        const campaignResponse = await fetch(`${API_BASE_URL}/api/campaign/${videoId}`);
+        const campaignData = await campaignResponse.json();
+
+        document.getElementById('modalVideoTitle').textContent = currentVideoData.title;
+        document.getElementById('modalVideoDescription').textContent = currentVideoData.description;
+        document.getElementById('modalCreator').textContent = currentVideoData.creator.substring(0, 10) + '...';
+        document.getElementById('modalDate').textContent = formatDate(currentVideoData.created_at);
+
+        if (campaignData.success && campaignData.hasCampaign) {
+            // Has campaign - show ad first
+            currentCampaign = campaignData.campaign;
+            showAdPlayer();
+        } else {
+            // No campaign - show main video directly
+            currentCampaign = null;
+            showMainPlayer();
+        }
+
+        document.getElementById('videoModal').classList.add('active');
     } catch (error) {
         console.error('Error loading video:', error);
         alert('Failed to load video');
+    }
+}
+
+function showAdPlayer() {
+    document.getElementById('adPlayerContainer').style.display = 'block';
+    document.getElementById('mainPlayerContainer').style.display = 'none';
+    
+    const adPlayer = document.getElementById('adPlayer');
+    adPlayer.src = currentCampaign.ad_url;
+    
+    document.getElementById('adTitle').textContent = currentCampaign.ad_title;
+    document.getElementById('adReward').textContent = currentCampaign.reward_per_second;
+    
+    adStartTime = Date.now();
+    
+    // Show skip button after 5 seconds
+    setTimeout(() => {
+        document.getElementById('adSkipBtn').style.display = 'inline-block';
+    }, 5000);
+    
+    // When ad ends, show main video
+    adPlayer.onended = () => {
+        trackAdView();
+        showMainPlayer();
+    };
+}
+
+function showMainPlayer() {
+    document.getElementById('adPlayerContainer').style.display = 'none';
+    document.getElementById('mainPlayerContainer').style.display = 'block';
+    
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.src = currentVideoData.url;
+}
+
+function skipAd() {
+    trackAdView();
+    showMainPlayer();
+}
+
+async function trackAdView() {
+    if (!currentCampaign) return;
+    
+    const watchDuration = Math.floor((Date.now() - adStartTime) / 1000);
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/campaign/track-view`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                campaign_id: currentCampaign.id,
+                video_id: currentVideoData.id,
+                watch_duration: watchDuration
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show earnings
+            document.getElementById('totalEarnings').textContent = data.reward_earned;
+            document.getElementById('earningsDisplay').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error tracking ad view:', error);
     }
 }
 
@@ -211,9 +314,25 @@ function closeVideoModal() {
     const modal = document.getElementById('videoModal');
     modal.classList.remove('active');
     
+    // Stop and clear all players
     const videoPlayer = document.getElementById('videoPlayer');
     videoPlayer.pause();
     videoPlayer.src = '';
+    
+    const adPlayer = document.getElementById('adPlayer');
+    adPlayer.pause();
+    adPlayer.src = '';
+    
+    // Reset displays
+    document.getElementById('adPlayerContainer').style.display = 'none';
+    document.getElementById('mainPlayerContainer').style.display = 'none';
+    document.getElementById('earningsDisplay').style.display = 'none';
+    document.getElementById('adSkipBtn').style.display = 'none';
+    
+    // Reset state
+    currentCampaign = null;
+    currentVideoData = null;
+    adStartTime = 0;
 }
 
 // Upload Video Handler
@@ -272,41 +391,56 @@ async function handleCampaignCreate(e) {
 
     if (!authToken) {
         alert('Please login first to create campaigns');
-        // In a real app, show login modal here
         return;
     }
 
+    const adFileInput = document.getElementById('adFile');
     const videoId = parseInt(document.getElementById('campaignVideoId').value);
+    const adTitle = document.getElementById('adTitle').value;
     const budget = parseInt(document.getElementById('campaignBudget').value);
     const reward = parseInt(document.getElementById('campaignReward').value);
 
-    showStatus('campaignStatus', 'Creating campaign...', 'info');
+    if (!adFileInput.files[0]) {
+        showStatus('campaignStatus', 'Please select an advertisement video', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('adFile', adFileInput.files[0]);
+    formData.append('video_id', videoId);
+    formData.append('ad_title', adTitle);
+    formData.append('budget', budget);
+    formData.append('reward_per_second', reward);
+
+    document.getElementById('campaignProgress').style.display = 'block';
+    showStatus('campaignStatus', 'Uploading ad and creating campaign...', 'info');
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/campaign/create`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({
-                video_id: videoId,
-                budget: budget,
-                reward_per_second: reward
-            })
+            body: formData
         });
 
         const data = await response.json();
 
         if (data.success) {
-            showStatus('campaignStatus', 'Campaign created successfully! TX: ' + data.tx.hash.substring(0, 20) + '...', 'success');
+            showStatus('campaignStatus', `Campaign created! Ad uploaded to IPFS. TX: ${data.tx.hash.substring(0, 20)}...`, 'success');
             document.getElementById('campaignForm').reset();
+            
+            setTimeout(() => {
+                document.getElementById('campaignProgress').style.display = 'none';
+            }, 2000);
         } else {
             showStatus('campaignStatus', 'Failed to create campaign: ' + (data.error || 'Unknown error'), 'error');
+            document.getElementById('campaignProgress').style.display = 'none';
         }
     } catch (error) {
         console.error('Campaign creation error:', error);
         showStatus('campaignStatus', 'Error: ' + error.message, 'error');
+        document.getElementById('campaignProgress').style.display = 'none';
     }
 }
 
