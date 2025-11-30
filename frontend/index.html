@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdMarket - Blockchain Video Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">🎬 AdMarket</div>
+            <ul class="nav-links">
+                <li><a href="#home" onclick="showPage('home')">Home</a></li>
+                <li><a href="#consumer" onclick="showPage('consumer')">Watch Videos</a></li>
+                <li><a href="#creator" onclick="showPage('creator')">Creator Studio</a></li>
+                <li><a href="#advertiser" onclick="showPage('advertiser')">Advertise</a></li>
+            </ul>
+            <button id="connectWallet" class="btn-primary">Connect Wallet</button>
+        </div>
+    </nav>
+
+    <!-- Home Page -->
+    <div id="home" class="page active">
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Welcome to AdMarket</h1>
+                <p class="hero-subtitle">The decentralized video platform where creators earn and advertisers connect</p>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <h3 id="totalVideos">0</h3>
+                        <p>Total Videos</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="totalCreators">0</h3>
+                        <p>Creators</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Live</h3>
+                        <p>On Aptos</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="recent-videos">
+            <h2>Recent Videos</h2>
+            <div id="homeVideoGrid" class="video-grid">
+                <!-- Videos will be loaded here -->
+            </div>
+        </section>
+
+        <section class="features">
+            <h2>Why Choose AdMarket?</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎥</div>
+                    <h3>Upload & Earn</h3>
+                    <p>Upload your videos and earn rewards from advertisers</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3>Blockchain Secured</h3>
+                    <p>All transactions secured on Aptos blockchain</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Transparent Metrics</h3>
+                    <p>Real-time analytics and earnings tracking</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Direct Payments</h3>
+                    <p>Get paid directly to your wallet</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Consumer Page -->
+    <div id="consumer" class="page">
+        <section class="page-header">
+            <h1>Watch Videos</h1>
+            <p>Browse and watch videos from creators around the world</p>
+        </section>
+
+        <div class="content-wrapper">
+            <div id="consumerVideoGrid" class="video-grid">
+                <!-- Videos will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Video Player Modal -->
+        <div id="videoModal" class="modal">
+            <div class="modal-content video-modal">
+                <span class="close" onclick="closeVideoModal()">&times;</span>
+                <div id="videoPlayerContainer">
+                    <video id="videoPlayer" controls></video>
+                    <div class="video-info">
+                        <h2 id="modalVideoTitle"></h2>
+                        <p id="modalVideoDescription"></p>
+                        <div class="video-meta">
+                            <span>Creator: <span id="modalCreator"></span></span>
+                            <span>Uploaded: <span id="modalDate"></span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Creator Page -->
+    <div id="creator" class="page">
+        <section class="page-header">
+            <h1>Creator Studio</h1>
+            <p>Upload videos and manage your content</p>
+        </section>
+
+        <div class="content-wrapper">
+            <div class="two-column">
+                <!-- Upload Section -->
+                <div class="card">
+                    <h2>Upload Video</h2>
+                    <form id="uploadForm" class="upload-form">
+                        <div class="form-group">
+                            <label for="videoFile">Video File</label>
+                            <input type="file" id="videoFile" accept="video/*" required>
+                            <small>Max size: 100MB</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="videoTitle">Title</label>
+                            <input type="text" id="videoTitle" placeholder="Enter video title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="videoDescription">Description</label>
+                            <textarea id="videoDescription" rows="4" placeholder="Describe your video" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary btn-block">Upload Video</button>
+                        <div id="uploadProgress" class="progress-bar" style="display:none;">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div id="uploadStatus" class="status-message"></div>
+                    </form>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div class="card">
+                    <h2>My Dashboard</h2>
+                    <div class="dashboard-stats">
+                        <div class="stat-box">
+                            <h3 id="myVideosCount">0</h3>
+                            <p>My Videos</p>
+                        </div>
+                        <div class="stat-box">
+                            <h3 id="myBalance">0 APT</h3>
+                            <p>Balance</p>
+                        </div>
+                    </div>
+                    <button onclick="loadCreatorDashboard()" class="btn-secondary btn-block">Refresh Dashboard</button>
+                </div>
+            </div>
+
+            <!-- My Videos Section -->
+            <div class="card mt-2">
+                <h2>My Videos</h2>
+                <div id="myVideosGrid" class="video-grid">
+                    <!-- Creator's videos will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advertiser Page -->
+    <div id="advertiser" class="page">
+        <section class="page-header">
+            <h1>Advertisement Dashboard</h1>
+            <p>Create campaigns and promote videos</p>
+        </section>
+
+        <div class="content-wrapper">
+            <div class="two-column">
+                <!-- Create Campaign -->
+                <div class="card">
+                    <h2>Create Campaign</h2>
+                    <form id="campaignForm" class="campaign-form">
+                        <div class="form-group">
+                            <label for="campaignVideoId">Video ID</label>
+                            <input type="number" id="campaignVideoId" placeholder="Enter video ID" required>
+                            <small>Find video ID from the video list</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="campaignBudget">Budget (APT)</label>
+                            <input type="number" id="campaignBudget" placeholder="1000000" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="campaignReward">Reward per Second</label>
+                            <input type="number" id="campaignReward" placeholder="10" required>
+                        </div>
+                        <button type="submit" class="btn-primary btn-block">Create Campaign</button>
+                        <div id="campaignStatus" class="status-message"></div>
+                    </form>
+                </div>
+
+                <!-- Campaign Info -->
+                <div class="card">
+                    <h2>How It Works</h2>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-icon">1️⃣</span>
+                            <div>
+                                <h4>Select a Video</h4>
+                                <p>Choose a video to promote by entering its ID</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-icon">2️⃣</span>
+                            <div>
+                                <h4>Set Budget</h4>
+                                <p>Define your campaign budget in APT tokens</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-icon">3️⃣</span>
+                            <div>
+                                <h4>Configure Rewards</h4>
+                                <p>Set reward per second of watch time</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-icon">4️⃣</span>
+                            <div>
+                                <h4>Launch Campaign</h4>
+                                <p>Your campaign goes live on the blockchain</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Videos -->
+            <div class="card mt-2">
+                <h2>Available Videos for Campaigns</h2>
+                <div id="advertiserVideoList" class="video-list">
+                    <!-- Videos will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 AdMarket - Powered by Aptos Blockchain</p>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Docs</a>
+                <a href="#">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
